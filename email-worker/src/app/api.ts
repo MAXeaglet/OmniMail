@@ -4,6 +4,7 @@ import { registerMiddleware } from './middleware/register-middleware'
 import { registerAccountRoutes } from './routes/account-routes'
 import { registerAdminRoutes } from './routes/admin-routes'
 import { registerMailRoutes } from './routes/mail-routes'
+import { agentRoutes } from './routes/agent-routes'
 import { registerPublicRoutes } from './routes/public-routes'
 import { logWorkerError } from '../shared/observability/structured-log'
 
@@ -14,6 +15,7 @@ registerPublicRoutes(app)
 registerAccountRoutes(app)
 registerAdminRoutes(app)
 registerMailRoutes(app)
+app.route('/api', agentRoutes)
 
 app.onError((error, context) => {
   logWorkerError('api_unhandled_error', {

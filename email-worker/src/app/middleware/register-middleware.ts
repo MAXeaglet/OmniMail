@@ -6,6 +6,7 @@ import { configuredSuperAdminEmail } from '../super-admin'
 import { applySuperAdminRole, sessionUser } from '../../features/auth/session/auth'
 import { syncSuperAdminIdentity } from '../../features/auth/account/super-admin-sync'
 import { authenticateAccessToken, bearerToken } from '../../features/auth/tokens/token-api'
+import { authenticateAgentAccessToken } from '../../features/agent/agent-token'
 import { deviceScopesAllow } from '../../features/auth/tokens/token-scope'
 import { officialExtensionEnabled } from '../../features/admin/settings/system-settings'
 import { ensureSchema } from '../../platform/d1/schema'
@@ -26,6 +27,7 @@ const PUBLIC_PATHS = new Set([
   '/api/auth/linux-do',
   '/api/auth/linux-do/callback',
   '/api/webhooks/resend',
+  '/api/v1/agent/token',
 ])
 
 export function registerMiddleware(app: Hono<AppContext>): void {
@@ -80,6 +82,17 @@ app.use('/api/*', async (context, next) => {
   const authorization = bearerToken(context.req.header('Authorization'))
   if (authorization === null) {
     return context.json({ error: 'Authorization 请求头无效。' }, 401)
+  }
+  if (context.req.path.startsWith('/api/v1/agent/')) {
+    if (!authorization) return context.json({ error: 'Agent 访问令牌已失效，请重新换取。' }, 401)
+    const agentIdentity = await authenticateAgentAccessToken(context.env.DB, authorization)
+    if (!agentIdentity) {
+      return context.json({ error: 'Agent 访问令牌已失效，请重新换取。' }, 401)
+    }
+    context.set('agent', agentIdentity)
+    context.set('authKind', 'agent')
+    await next()
+    return
   }
   if (authorization) {
     const identity = await authenticateAccessToken(context.env, authorization)

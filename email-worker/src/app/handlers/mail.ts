@@ -418,6 +418,43 @@ async function consumeSearchIndexJob(
   }
 }
 
+export async function maybeCreateAgentEvents(
+  env: Env,
+  messageId: string,
+): Promise<void> {
+  const record = await env.DB.prepare(
+    'SELECT mailbox_address FROM messages WHERE id = ?',
+  ).bind(messageId).first<{ mailbox_address: string }>()
+  if (!record) return
+  const mailboxAddress = record.mailbox_address
+
+  const grants = await env.DB.prepare(
+    `SELECT agent_id FROM agent_grants
+      WHERE resource_type = 'mailbox' AND resource_id = ? AND trigger_enabled = 1`,
+  ).bind(mailboxAddress).all<{ agent_id: string }>()
+  const owner = await env.DB.prepare(
+    'SELECT user_id FROM mailboxes WHERE address = ?',
+  ).bind(mailboxAddress).first<{ user_id: string }>()
+  if (!owner) return
+  const userGrants = await env.DB.prepare(
+    `SELECT agent_id FROM agent_grants
+      WHERE resource_type = 'user' AND resource_id = ? AND trigger_enabled = 1`,
+  ).bind(owner.user_id).all<{ agent_id: string }>()
+
+  const agentIds = new Set<string>()
+  for (const row of grants.results) agentIds.add(row.agent_id)
+  for (const row of userGrants.results) agentIds.add(row.agent_id)
+
+  const now = Math.floor(Date.now() / 1000)
+  for (const agentId of agentIds) {
+    await env.DB.prepare(
+      `INSERT OR IGNORE INTO agent_events
+        (id, agent_id, mailbox_address, message_id, event_type, status, attempts, created_at)
+       VALUES (?, ?, ?, ?, 'mail.new', 'pending', 0, ?)`,
+    ).bind(crypto.randomUUID(), agentId, mailboxAddress, messageId, now).run()
+  }
+}
+
 export async function consumeEmailQueue(batch: MessageBatch<MailQueueJob>, env: Env): Promise<void> {
   await ensureSchema(env.DB)
   for (const message of batch.messages) {
@@ -455,6 +492,7 @@ export async function consumeEmailQueue(batch: MessageBatch<MailQueueJob>, env: 
     }
     try {
       await parseMessage(message.body as ParseJob, env)
+      await maybeCreateAgentEvents(env, (message.body as ParseJob).messageId)
       message.ack()
     } catch (error) {
       const detail = error instanceof Error ? error.message : 'Unable to parse message'

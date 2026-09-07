@@ -18,7 +18,7 @@ function field(input: unknown, maximum: number): string {
 export async function recordClientError(
   request: Request,
   user: SessionUser,
-  authKind: 'cookie' | 'bearer',
+  authKind: 'cookie' | 'bearer' | 'agent',
 ): Promise<Response> {
   const declaredSize = Number(request.headers.get('Content-Length') || 0)
   if (declaredSize > MAX_CLIENT_ERROR_BYTES) {
