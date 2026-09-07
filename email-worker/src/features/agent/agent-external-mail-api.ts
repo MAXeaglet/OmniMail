@@ -1,3 +1,4 @@
+
 // Agent external mail operations. These adapt provider APIs into internal JSON.
 import type { Env, SessionUser } from '../../app/types'
 import type { AgentGrantRow } from './agent-types'
@@ -15,6 +16,31 @@ function jsonBody(value: unknown): RequestInit {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(value),
   }
+}
+
+function scopePrefixForProvider(provider: string): string {
+  switch (provider) {
+    case 'gmail': return 'gmail'
+    case 'microsoft': return 'microsoft'
+    case 'qq': return 'qq-mail'
+    case 'naver': return 'naver-mail'
+    case 'yandex': return 'yandex-mail'
+    case 'linuxdo': return 'linuxdo-mail'
+    case 'icloud': return 'icloud'
+    default: return provider
+  }
+}
+
+function scopeForRead(provider: string): string {
+  return `${scopePrefixForProvider(provider)}:messages:read`
+}
+
+function scopeForAttachments(provider: string): string {
+  return `${scopePrefixForProvider(provider)}:attachments:read`
+}
+
+function scopeForSend(provider: string): string {
+  return `${scopePrefixForProvider(provider)}:messages:send`
 }
 
 async function userIdForAccount(
@@ -85,7 +111,7 @@ export async function agentListExternalMessages(
   query: string,
   limit: number,
 ): Promise<{ ok: true; messages: unknown[] } | { error: string }> {
-  const userOrError = await hasExternalScope(ctx, provider, accountId, `${provider}:messages:read`.replace('microsoft:', 'microsoft:messages:read'))
+  const userOrError = await hasExternalScope(ctx, provider, accountId, scopeForRead(provider))
   if ('error' in userOrError) return userOrError
   const user = userOrError
   const url = new URL('http://internal')
@@ -138,7 +164,7 @@ export async function agentReadExternalMessage(
   accountId: string,
   messageId: string,
 ): Promise<{ ok: true; message: unknown } | { error: string }> {
-  const userOrError = await hasExternalScope(ctx, provider, accountId, `${provider}:messages:read`.replace('microsoft:', 'microsoft:messages:read'))
+  const userOrError = await hasExternalScope(ctx, provider, accountId, scopeForRead(provider))
   if ('error' in userOrError) return userOrError
   const user = userOrError
   if (provider === 'gmail') {
@@ -186,7 +212,7 @@ export async function agentSendExternalMessage(
   accountId: string,
   input: { to?: unknown; subject?: unknown; text?: unknown; idempotencyKey?: unknown },
 ): Promise<{ ok: true; messageId: string } | { error: string }> {
-  const userOrError = await hasExternalScope(ctx, provider, accountId, `${provider}:messages:send`)
+  const userOrError = await hasExternalScope(ctx, provider, accountId, scopeForSend(provider))
   if ('error' in userOrError) return userOrError
   const user = userOrError
   if (!user.canReply) return { error: '当前账户没有发信权限。' }
@@ -215,4 +241,47 @@ export async function agentSendExternalMessage(
     return { ok: true, messageId: body.message?.id || '' }
   }
   return { error: `当前邮箱来源不支持发信：${provider}` }
+}
+
+export async function agentDownloadExternalAttachment(
+  ctx: AgentExternalContext,
+  provider: string,
+  accountId: string,
+  messageId: string,
+  partId: string,
+): Promise<{ ok: true; attachment: unknown } | { error: string }> {
+  const userOrError = await hasExternalScope(ctx, provider, accountId, scopeForAttachments(provider))
+  if ('error' in userOrError) return userOrError
+  const user = userOrError
+  if (provider === 'qq') {
+    const { getQqMailAttachment } = await import('../qq-mail/qq-mail-message-api')
+    const response = await getQqMailAttachment(ctx.env, user, accountId, messageId, partId)
+    const body = await response.json<{ attachment?: unknown }>()
+    return { ok: true, attachment: body.attachment || {} }
+  }
+  if (provider === 'gmail') {
+    const { getGmailAttachment } = await import('../gmail/gmail-api')
+    const response = await getGmailAttachment(ctx.env, user, accountId, messageId, partId)
+    const body = await response.json<{ attachment?: unknown }>()
+    return { ok: true, attachment: body.attachment || {} }
+  }
+  if (provider === 'microsoft') {
+    const { getMicrosoftAttachment } = await import('../microsoft/microsoft-message-api')
+    const response = await getMicrosoftAttachment(ctx.env, user, accountId, messageId, partId)
+    const body = await response.json<{ attachment?: unknown }>()
+    return { ok: true, attachment: body.attachment || {} }
+  }
+  if (provider === 'naver') {
+    const { getNaverMailAttachment } = await import('../naver-mail/naver-mail-message-api')
+    const response = await getNaverMailAttachment(ctx.env, user, accountId, messageId, partId)
+    const body = await response.json<{ attachment?: unknown }>()
+    return { ok: true, attachment: body.attachment || {} }
+  }
+  if (provider === 'yandex') {
+    const { getYandexMailAttachment } = await import('../yandex-mail/yandex-mail-message-api')
+    const response = await getYandexMailAttachment(ctx.env, user, accountId, messageId, partId)
+    const body = await response.json<{ attachment?: unknown }>()
+    return { ok: true, attachment: body.attachment || {} }
+  }
+  return { error: `当前邮箱来源不支持附件下载：${provider}` }
 }
