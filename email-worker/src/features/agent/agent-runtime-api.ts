@@ -13,6 +13,7 @@ import {
   grantScopesForExternalAccount,
   grantScopesForMailbox,
 } from './agent-auth'
+import { listExternalAccountsForAgent } from './agent-external-api'
 import { expandAgentScope } from './agent-types'
 
 export interface AgentContext {
@@ -87,11 +88,22 @@ export async function listAgentGrantedExternalAccounts(
 ) {
   const grants = await listAgentGrants({ DB: db }, agentId)
   const externalGrants = grants.filter((g) => g.resource_type === 'external_account')
-  return externalGrants.map((g) => ({
-    accountId: g.resource_id,
-    provider: g.provider,
-    scopes: expandAgentScope(g.scope),
-  }))
+  const accounts = await listExternalAccountsForAgent(db, grants)
+  return accounts.map((account) => {
+    const grant = externalGrants.find((g) =>
+      g.resource_type === 'external_account'
+      && g.resource_id === account.accountId
+      && (g.provider === '' || g.provider === account.provider),
+    )
+    const userGrant = grants.find((g) => g.resource_type === 'user' && g.include_external === 1)
+    return {
+      accountId: account.accountId,
+      provider: account.provider,
+      email: account.email,
+      name: account.name,
+      scopes: grant ? expandAgentScope(grant.scope) : userGrant ? expandAgentScope(userGrant.scope) : [],
+    }
+  })
 }
 
 export async function canAccessMailbox(
