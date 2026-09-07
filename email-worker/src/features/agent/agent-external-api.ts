@@ -7,6 +7,7 @@ export interface ExternalAccountSummary {
   accountId: string
   email: string
   name: string
+  userId: string
 }
 
 export async function listExternalAccountsForUser(
@@ -18,49 +19,49 @@ export async function listExternalAccountsForUser(
     'SELECT id, email, name FROM gmail_imap_accounts WHERE user_id = ?',
   ).bind(userId).all<{ id: string; email: string; name: string }>()
   for (const row of gmail.results) {
-    results.push({ provider: 'gmail', accountId: row.id, email: row.email, name: row.name })
+    results.push({ provider: 'gmail', accountId: row.id, email: row.email, name: row.name, userId })
   }
 
   const qq = await db.prepare(
     'SELECT id, email, name FROM qq_mail_accounts WHERE user_id = ?',
   ).bind(userId).all<{ id: string; email: string; name: string }>()
   for (const row of qq.results) {
-    results.push({ provider: 'qq', accountId: row.id, email: row.email, name: row.name })
+    results.push({ provider: 'qq', accountId: row.id, email: row.email, name: row.name, userId })
   }
 
   const microsoft = await db.prepare(
     'SELECT id, normalized_email AS email, name FROM microsoft_imap_accounts WHERE user_id = ?',
   ).bind(userId).all<{ id: string; email: string; name: string }>()
   for (const row of microsoft.results) {
-    results.push({ provider: 'microsoft', accountId: row.id, email: row.email, name: row.name })
+    results.push({ provider: 'microsoft', accountId: row.id, email: row.email, name: row.name, userId })
   }
 
   const naver = await db.prepare(
     'SELECT id, email, name FROM naver_mail_accounts WHERE user_id = ?',
   ).bind(userId).all<{ id: string; email: string; name: string }>()
   for (const row of naver.results) {
-    results.push({ provider: 'naver', accountId: row.id, email: row.email, name: row.name })
+    results.push({ provider: 'naver', accountId: row.id, email: row.email, name: row.name, userId })
   }
 
   const yandex = await db.prepare(
     'SELECT id, email, name FROM yandex_mail_accounts WHERE user_id = ?',
   ).bind(userId).all<{ id: string; email: string; name: string }>()
   for (const row of yandex.results) {
-    results.push({ provider: 'yandex', accountId: row.id, email: row.email, name: row.name })
+    results.push({ provider: 'yandex', accountId: row.id, email: row.email, name: row.name, userId })
   }
 
   const linuxdo = await db.prepare(
     'SELECT id, username AS email, username AS name FROM linux_do_mail_accounts WHERE user_id = ?',
   ).bind(userId).all<{ id: string; email: string; name: string }>()
   for (const row of linuxdo.results) {
-    results.push({ provider: 'linuxdo', accountId: row.id, email: row.email, name: row.name })
+    results.push({ provider: 'linuxdo', accountId: row.id, email: row.email, name: row.name, userId })
   }
 
   const icloud = await db.prepare(
     'SELECT id, real_email AS email, name FROM icloud_accounts WHERE user_id = ?',
   ).bind(userId).all<{ id: string; email: string; name: string }>()
   for (const row of icloud.results) {
-    results.push({ provider: 'icloud', accountId: row.id, email: row.email, name: row.name })
+    results.push({ provider: 'icloud', accountId: row.id, email: row.email, name: row.name, userId })
   }
 
   return results
@@ -107,45 +108,45 @@ export async function findExternalAccount(
 ): Promise<ExternalAccountSummary | null> {
   if (provider === 'gmail') {
     const row = await db.prepare(
-      'SELECT id, email, name FROM gmail_imap_accounts WHERE id = ?',
-    ).bind(accountId).first<{ id: string; email: string; name: string }>()
-    return row ? { provider, accountId: row.id, email: row.email, name: row.name } : null
+      'SELECT id, email, name, user_id FROM gmail_imap_accounts WHERE id = ?',
+    ).bind(accountId).first<{ id: string; email: string; name: string; user_id: string }>()
+    return row ? { provider, accountId: row.id, email: row.email, name: row.name, userId: String(row.user_id) } : null
   }
   if (provider === 'qq') {
     const row = await db.prepare(
-      'SELECT id, email, name FROM qq_mail_accounts WHERE id = ?',
-    ).bind(accountId).first<{ id: string; email: string; name: string }>()
-    return row ? { provider, accountId: row.id, email: row.email, name: row.name } : null
+      'SELECT id, email, name, user_id FROM qq_mail_accounts WHERE id = ?',
+    ).bind(accountId).first<{ id: string; email: string; name: string; user_id: string }>()
+    return row ? { provider, accountId: row.id, email: row.email, name: row.name, userId: String(row.user_id) } : null
   }
   if (provider === 'microsoft') {
     const row = await db.prepare(
-      'SELECT id, normalized_email AS email, name FROM microsoft_imap_accounts WHERE id = ?',
-    ).bind(accountId).first<{ id: string; email: string; name: string }>()
-    return row ? { provider, accountId: row.id, email: row.email, name: row.name } : null
+      'SELECT id, normalized_email AS email, name, user_id FROM microsoft_imap_accounts WHERE id = ?',
+    ).bind(accountId).first<{ id: string; email: string; name: string; user_id: string }>()
+    return row ? { provider, accountId: row.id, email: row.email, name: row.name, userId: String(row.user_id) } : null
   }
   if (provider === 'naver') {
     const row = await db.prepare(
-      'SELECT id, email, name FROM naver_mail_accounts WHERE id = ?',
-    ).bind(accountId).first<{ id: string; email: string; name: string }>()
-    return row ? { provider, accountId: row.id, email: row.email, name: row.name } : null
+      'SELECT id, email, name, user_id FROM naver_mail_accounts WHERE id = ?',
+    ).bind(accountId).first<{ id: string; email: string; name: string; user_id: string }>()
+    return row ? { provider, accountId: row.id, email: row.email, name: row.name, userId: String(row.user_id) } : null
   }
   if (provider === 'yandex') {
     const row = await db.prepare(
-      'SELECT id, email, name FROM yandex_mail_accounts WHERE id = ?',
-    ).bind(accountId).first<{ id: string; email: string; name: string }>()
-    return row ? { provider, accountId: row.id, email: row.email, name: row.name } : null
+      'SELECT id, email, name, user_id FROM yandex_mail_accounts WHERE id = ?',
+    ).bind(accountId).first<{ id: string; email: string; name: string; user_id: string }>()
+    return row ? { provider, accountId: row.id, email: row.email, name: row.name, userId: String(row.user_id) } : null
   }
   if (provider === 'linuxdo') {
     const row = await db.prepare(
-      'SELECT id, username AS email, username AS name FROM linux_do_mail_accounts WHERE id = ?',
-    ).bind(accountId).first<{ id: string; email: string; name: string }>()
-    return row ? { provider, accountId: row.id, email: row.email, name: row.name } : null
+      'SELECT id, username AS email, username AS name, user_id FROM linux_do_mail_accounts WHERE id = ?',
+    ).bind(accountId).first<{ id: string; email: string; name: string; user_id: string }>()
+    return row ? { provider, accountId: row.id, email: row.email, name: row.name, userId: String(row.user_id) } : null
   }
   if (provider === 'icloud') {
     const row = await db.prepare(
-      'SELECT id, real_email AS email, name FROM icloud_accounts WHERE id = ?',
-    ).bind(accountId).first<{ id: string; email: string; name: string }>()
-    return row ? { provider, accountId: row.id, email: row.email, name: row.name } : null
+      'SELECT id, real_email AS email, name, user_id FROM icloud_accounts WHERE id = ?',
+    ).bind(accountId).first<{ id: string; email: string; name: string; user_id: string }>()
+    return row ? { provider, accountId: row.id, email: row.email, name: row.name, userId: String(row.user_id) } : null
   }
   return null
 }
