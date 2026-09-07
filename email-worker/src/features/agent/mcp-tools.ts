@@ -12,10 +12,13 @@ import {
 } from './agent-runtime-api'
 import {
   agentCreateMailbox,
+  agentDeleteMailbox,
+  agentDownloadAttachment,
   agentListMailboxMessages,
   agentReadMailboxMessage,
   agentSearchMailboxMessages,
   agentSendMailboxMessage,
+  agentUpdateMailboxStatus,
 } from './agent-mail-api'
 import {
   agentListExternalMessages,
@@ -157,6 +160,78 @@ export const mcpTools: McpTool[] = [
           text: args.text,
           idempotencyKey: args.idempotencyKey,
         },
+      )
+    },
+  },
+  {
+    name: 'download_attachment',
+    description: '下载邮件附件。',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        mailboxAddress: { type: 'string' },
+        messageId: { type: 'string' },
+        attachmentId: { type: 'string' },
+      },
+      required: ['mailboxAddress', 'messageId', 'attachmentId'],
+      additionalProperties: false,
+    },
+    execute: async (args, ctx) => {
+      const grants = await withGrants(ctx)
+      const result = await agentDownloadAttachment(
+        { env: ctx.env, agentId: ctx.agentId, grants },
+        String(args.mailboxAddress),
+        String(args.messageId),
+        String(args.attachmentId),
+      )
+      if ('error' in result) return result
+      const bytes = new Uint8Array(result.bytes)
+      let binary = ''
+      for (const byte of bytes) binary += String.fromCharCode(byte)
+      return {
+        filename: result.filename,
+        contentType: result.contentType,
+        base64: btoa(binary),
+      }
+    },
+  },
+  {
+    name: 'update_mailbox_status',
+    description: '启用或停用一个邮箱地址。',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        mailboxAddress: { type: 'string' },
+        active: { type: 'boolean' },
+      },
+      required: ['mailboxAddress', 'active'],
+      additionalProperties: false,
+    },
+    execute: async (args, ctx) => {
+      const grants = await withGrants(ctx)
+      return agentUpdateMailboxStatus(
+        { env: ctx.env, agentId: ctx.agentId, grants },
+        String(args.mailboxAddress),
+        args.active === true,
+      )
+    },
+  },
+  {
+    name: 'delete_mailbox',
+    description: '删除一个邮箱地址。',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        mailboxAddress: { type: 'string' },
+      },
+      required: ['mailboxAddress'],
+      additionalProperties: false,
+    },
+    execute: async (args, ctx) => {
+      const grants = await withGrants(ctx)
+      return agentDeleteMailbox(
+        { env: ctx.env, agentId: ctx.agentId, grants },
+        String(args.mailboxAddress),
       )
     },
   },

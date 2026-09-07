@@ -255,6 +255,54 @@ export async function agentSendMailboxMessage(
   return { ok: true, messageId: body.message?.id || '' }
 }
 
+
+export async function agentDownloadAttachment(
+  ctx: AgentMailContext,
+  mailboxAddress: string,
+  messageId: string,
+  attachmentId: string,
+): Promise<{ ok: true; bytes: ArrayBuffer; contentType: string; filename: string } | { error: string }> {
+  const scoped = await requireMailboxScope(ctx, mailboxAddress, 'messages:attachments:read')
+  if ('error' in scoped) return { error: scoped.error }
+  const { getMessageAttachment } = await import('../messages/message-detail-api')
+  const response = await getMessageAttachment(ctx.env, scoped.user, messageId, attachmentId)
+  if (!response.ok) {
+    let detail = '附件不存在。'
+    try { detail = (await response.json<{ error?: string }>()).error || detail } catch {}
+    return { error: detail }
+  }
+  const contentType = response.headers.get('Content-Type') || 'application/octet-stream'
+  const disposition = response.headers.get('Content-Disposition') || ''
+  const filename = /filename\*?=(?:"([^"]+)"|([^;]+))/i.exec(disposition)?.[1] || ''
+  return { ok: true, bytes: await response.arrayBuffer(), contentType, filename }
+}
+
+
+export async function agentUpdateMailboxStatus(
+  ctx: AgentMailContext,
+  mailboxAddress: string,
+  active: boolean,
+): Promise<{ ok: true } | { error: string }> {
+  const scoped = await requireMailboxScope(ctx, mailboxAddress, 'mailboxes:manage')
+  if ('error' in scoped) return { error: scoped.error }
+  await ctx.env.DB.prepare(
+    `UPDATE mailboxes SET is_active = ? WHERE address = ?`,
+  ).bind(active ? 1 : 0, scoped.address).run()
+  return { ok: true }
+}
+
+export async function agentDeleteMailbox(
+  ctx: AgentMailContext,
+  mailboxAddress: string,
+): Promise<{ ok: true } | { error: string }> {
+  const scoped = await requireMailboxScope(ctx, mailboxAddress, 'mailboxes:delete')
+  if ('error' in scoped) return { error: scoped.error }
+  await ctx.env.DB.prepare(
+    `DELETE FROM mailboxes WHERE address = ?`,
+  ).bind(scoped.address).run()
+  return { ok: true }
+}
+
 export async function agentCreateMailbox(
   ctx: AgentMailContext,
   domain: string,
