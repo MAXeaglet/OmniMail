@@ -1,6 +1,7 @@
 // Lightweight MCP protocol handler for Cloudflare Workers.
 import type { Env } from '../../app/types'
 import { mcpTools } from './mcp-tools'
+import { AGENT_SKILL_RESOURCES, AGENT_SKILL_PROMPTS } from './agent-skill-data'
 import type { McpToolContext } from './mcp-tools'
 import type { AgentIdentity } from './agent-token'
 
@@ -92,11 +93,25 @@ export async function handleMcpRequest(
   }
 
   if (method === 'resources/list') {
-    return Response.json(jsonRpcResult(id, { resources: [] }))
+    return Response.json(jsonRpcResult(id, { resources: AGENT_SKILL_RESOURCES }))
+  }
+
+  if (method === 'resources/read') {
+    const uri = (body.params as { uri?: unknown } | undefined)?.uri
+    const resource = AGENT_SKILL_RESOURCES.find((r) => r.uri === uri)
+    if (!resource) return Response.json(jsonRpcError(id, -32002, 'Resource not found'))
+    return Response.json(jsonRpcResult(id, { contents: [{ uri: resource.uri, mimeType: 'text/markdown', text: resource.text }] }))
   }
 
   if (method === 'prompts/list') {
-    return Response.json(jsonRpcResult(id, { prompts: [] }))
+    return Response.json(jsonRpcResult(id, { prompts: AGENT_SKILL_PROMPTS }))
+  }
+
+  if (method === 'prompts/get') {
+    const name = (body.params as { name?: unknown } | undefined)?.name
+    const prompt = AGENT_SKILL_PROMPTS.find((p) => p.name === name)
+    if (!prompt) return Response.json(jsonRpcError(id, -32002, 'Prompt not found'))
+    return Response.json(jsonRpcResult(id, { description: prompt.description, messages: prompt.messages }))
   }
 
   return Response.json(jsonRpcError(id, -32601, `Method not found: ${String(method)}`))

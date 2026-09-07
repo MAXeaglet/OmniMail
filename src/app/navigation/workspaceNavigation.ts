@@ -3,7 +3,7 @@ import type { Folder, UserRole } from '../../shared/api'
 import { isAdminRole } from '../../shared/auth/roles'
 import { MAIL_SOURCE_WEB_PATHS } from '../../shared/mail/mailSourceContract'
 
-export type AdminView = 'statistics' | 'mail' | 'users' | 'invites' | 'logs' | 'settings' | 'account' | 'api' | 'icloud' | 'linuxdo-mail' | 'gmail' | 'microsoft' | 'qq-mail' | 'naver-mail' | 'yandex-mail'
+export type AdminView = 'statistics' | 'mail' | 'users' | 'invites' | 'logs' | 'settings' | 'account' | 'api' | 'agents' | 'icloud' | 'linuxdo-mail' | 'gmail' | 'microsoft' | 'qq-mail' | 'naver-mail' | 'yandex-mail'
 
 export type WorkspaceFeatures = {
   iCloudWorkspaceEnabled: boolean
@@ -46,6 +46,7 @@ const adminPaths: Record<AdminView, string> = {
   settings: '/admin/settings',
   account: '/settings/account',
   api: '/settings/api',
+  agents: '/admin/agents',
   icloud: MAIL_SOURCE_WEB_PATHS.icloud,
   'linuxdo-mail': MAIL_SOURCE_WEB_PATHS.linuxdo,
   gmail: MAIL_SOURCE_WEB_PATHS.gmail,
@@ -60,6 +61,7 @@ function canOpenAdminView(
   role: UserRole,
   features: WorkspaceFeatures,
 ): boolean {
+  if (view === 'agents') return role === 'admin' || role === 'super_admin'
   if (view === 'icloud') return features.iCloudWorkspaceEnabled
   if (view === 'linuxdo-mail') return features.linuxDoMailWorkspaceEnabled
   if (view === 'gmail') return features.gmailWorkspaceEnabled

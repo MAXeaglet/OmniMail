@@ -4,6 +4,7 @@ import {
   Bell,
   BellOff,
   BookOpen,
+  Bot,
   FilePenLine,
   Inbox,
   Cloud,
@@ -63,6 +64,7 @@ const adminItems: Array<{
   { id: 'users', label: '用户', icon: Users },
   { id: 'invites', label: '邀请', icon: Link2 },
   { id: 'logs', label: '操作日志', icon: ScrollText },
+  { id: 'agents', label: 'Agent', icon: Bot },
   { id: 'settings', label: '系统设置', icon: Settings2 },
 ]
 

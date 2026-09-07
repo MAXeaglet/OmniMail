@@ -17,6 +17,11 @@ import {
   agentSearchMailboxMessages,
   agentSendMailboxMessage,
 } from './agent-mail-api'
+import {
+  agentListExternalMessages,
+  agentReadExternalMessage,
+  agentSendExternalMessage,
+} from './agent-external-mail-api'
 
 export interface McpToolContext {
   env: Env
@@ -181,6 +186,85 @@ export const mcpTools: McpTool[] = [
     description: '列出当前 Agent 可访问的外部邮箱账号。',
     inputSchema: { type: 'object', properties: {}, additionalProperties: false },
     execute: async (_args, ctx) => listAgentGrantedExternalAccounts(ctx.env.DB, ctx.agentId),
+  },
+  {
+    name: 'list_external_messages',
+    description: '列出外部邮箱账号的消息。',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        provider: { type: 'string', enum: ['gmail', 'qq', 'microsoft', 'naver', 'yandex', 'linuxdo', 'icloud'] },
+        accountId: { type: 'string' },
+        query: { type: 'string' },
+        limit: { type: 'number', minimum: 1, maximum: 50, default: 20 },
+      },
+      required: ['provider', 'accountId'],
+      additionalProperties: false,
+    },
+    execute: async (args, ctx) => {
+      const grants = await withGrants(ctx)
+      return agentListExternalMessages(
+        { env: ctx.env, agentId: ctx.agentId, grants },
+        String(args.provider),
+        String(args.accountId),
+        String(args.query || ''),
+        Number(args.limit || 20),
+      )
+    },
+  },
+  {
+    name: 'read_external_message',
+    description: '读取外部邮箱某封邮件的完整内容。',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        provider: { type: 'string', enum: ['gmail', 'qq', 'microsoft', 'naver', 'yandex', 'linuxdo', 'icloud'] },
+        accountId: { type: 'string' },
+        messageId: { type: 'string' },
+      },
+      required: ['provider', 'accountId', 'messageId'],
+      additionalProperties: false,
+    },
+    execute: async (args, ctx) => {
+      const grants = await withGrants(ctx)
+      return agentReadExternalMessage(
+        { env: ctx.env, agentId: ctx.agentId, grants },
+        String(args.provider),
+        String(args.accountId),
+        String(args.messageId),
+      )
+    },
+  },
+  {
+    name: 'send_external_message',
+    description: '从外部邮箱发送邮件（仅 QQ / LinuxDO 支持）。',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        provider: { type: 'string', enum: ['qq', 'linuxdo'] },
+        accountId: { type: 'string' },
+        to: { type: 'string' },
+        subject: { type: 'string' },
+        text: { type: 'string' },
+        idempotencyKey: { type: 'string' },
+      },
+      required: ['provider', 'accountId', 'to', 'subject', 'text'],
+      additionalProperties: false,
+    },
+    execute: async (args, ctx) => {
+      const grants = await withGrants(ctx)
+      return agentSendExternalMessage(
+        { env: ctx.env, agentId: ctx.agentId, grants },
+        String(args.provider),
+        String(args.accountId),
+        {
+          to: args.to,
+          subject: args.subject,
+          text: args.text,
+          idempotencyKey: args.idempotencyKey,
+        },
+      )
+    },
   },
   {
     name: 'list_agent_events',

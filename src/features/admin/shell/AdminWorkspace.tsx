@@ -44,6 +44,7 @@ import { RandomMailboxSettings } from '../settings/RandomMailboxSettings'
 import { StoragePolicySettings } from '../settings/StoragePolicySettings'
 import { UserManagement } from '../users/UserManagement'
 import { VersionStatusCard } from '../settings/VersionStatusCard'
+import { AgentManagement } from '../agents/AgentManagement'
 
 const ApiGuide = lazy(async () => ({ default: (await import('../../api-guide/components/ApiGuide')).ApiGuide }))
 
@@ -151,6 +152,9 @@ export function AdminWorkspace({
     )
   }
   if (view === 'logs') return <AuditLogs />
+  if (view === 'agents' && (user.role === 'admin' || user.role === 'super_admin')) {
+    return <AgentManagement currentUser={user} />
+  }
   if (view === 'mail' && user.role === 'super_admin') return <AdminMailManagement remoteImagesEnabled={config.remoteImagesEnabled} />
   if (view === 'account') {
     return <AccountSettings user={user} onUserChange={onUserChange} onLogout={onLogout} onOpenApiGuide={onOpenApiGuide} onOpenICloud={onOpenICloud} iCloudWorkspaceEnabled={config.iCloudWorkspaceEnabled} />
