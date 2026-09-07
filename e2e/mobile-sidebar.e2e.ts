@@ -94,7 +94,7 @@ test('navigation stays usable on mobile and short desktop viewports', async ({ p
   const adminNav = page.locator('.admin-nav')
   await expect(adminNav).toHaveCSS('visibility', 'visible')
   await expect(adminNav).toHaveCSS('transform', 'none')
-  await expect(adminNav.getByRole('button')).toHaveCount(6)
+  await expect(adminNav.getByRole('button')).toHaveCount(7)
   await page.keyboard.press('Escape')
   await expect(sidebar).toHaveCSS('visibility', 'hidden')
   await expect(mobileToggle).toBeFocused()
