@@ -53,33 +53,47 @@ function useTypewriterText(target: string) {
   const [state, setState] = useState({ text: target, active: false })
 
   useEffect(() => {
-    if (target === currentText.current) {
-      setState((current) => current.active
-        ? { text: target, active: false }
-        : current)
-      return
-    }
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      currentText.current = target
-      setState({ text: target, active: false })
-      return
-    }
+    const media = window.matchMedia('(prefers-reduced-motion: reduce)')
+    let cancelled = false
 
-    const from = currentText.current
-    const startedAt = performance.now()
-    let animationFrame = 0
-    setState({ text: from, active: true })
-
-    const update = (timestamp: number) => {
-      const next = typewriterFrame(from, target, timestamp - startedAt)
-      if (next.text !== currentText.current || next.complete) {
-        currentText.current = next.text
-        setState({ text: next.text, active: !next.complete })
+    const applyAnimation = () => {
+      if (cancelled) return
+      if (target === currentText.current) {
+        setState((current) => current.active
+          ? { text: target, active: false }
+          : current)
+        return
       }
-      if (!next.complete) animationFrame = requestAnimationFrame(update)
+      if (media.matches) {
+        currentText.current = target
+        setState({ text: target, active: false })
+        return
+      }
+
+      const from = currentText.current
+      const startedAt = performance.now()
+      let animationFrame = 0
+      setState({ text: from, active: true })
+
+      const update = (timestamp: number) => {
+        if (cancelled) return
+        const next = typewriterFrame(from, target, timestamp - startedAt)
+        if (next.text !== currentText.current || next.complete) {
+          currentText.current = next.text
+          setState({ text: next.text, active: !next.complete })
+        }
+        if (!next.complete) animationFrame = requestAnimationFrame(update)
+      }
+      animationFrame = requestAnimationFrame(update)
     }
-    animationFrame = requestAnimationFrame(update)
-    return () => cancelAnimationFrame(animationFrame)
+
+    applyAnimation()
+    const onChange = () => applyAnimation()
+    media.addEventListener('change', onChange)
+    return () => {
+      cancelled = true
+      media.removeEventListener('change', onChange)
+    }
   }, [target])
 
   return state
