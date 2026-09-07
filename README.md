@@ -303,6 +303,7 @@ flowchart LR
 │       └── index.ts           # Worker 稳定入口
 ├── migrations/                # 可审阅的 D1 迁移
 ├── docs/API.md                # HTTP API 文档
+├── docs/AGENT_API.md          # Agent / MCP API 文档
 ├── docs/ARCHITECTURE.md       # 代码目录和依赖边界约定
 ├── scripts/                   # 仓库质量检查脚本
 ├── wrangler.jsonc             # Worker、静态前端与 Cloudflare 资源配置

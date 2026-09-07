@@ -1,5 +1,6 @@
 import { Bot, Plus, KeyRound, Trash2, ShieldCheck } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import './AgentManagement.css'
 import { t } from '../../../shared/i18n'
 import type { User } from '../../../shared/api'
 
