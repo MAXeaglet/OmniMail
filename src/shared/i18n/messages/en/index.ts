@@ -1,4 +1,5 @@
 import { enAdmin } from './admin'
+import { enAgents } from './agents'
 import { enAdminMail } from './admin-mail'
 import { enApi } from './api'
 import { enErrors } from './errors'
@@ -21,6 +22,7 @@ import { enVersion } from './version'
 
 export const englishTranslations: Record<string, string> = {
   ...enAdmin,
+  ...enAgents,
   ...enAdminMail,
   ...enInvites,
   ...enErrors,
