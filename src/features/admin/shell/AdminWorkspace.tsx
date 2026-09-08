@@ -1,4 +1,4 @@
-import { AlertCircle, ArrowRight, BarChart3, Clock3, Image as ImageIcon, ListChecks, LoaderCircle, Mail, RefreshCw, Send, Settings2, ShieldCheck, Users } from 'lucide-react'
+import { AlertCircle, ArrowRight, BarChart3, Bot, Clock3, Image as ImageIcon, ListChecks, LoaderCircle, Mail, RefreshCw, Send, Settings2, ShieldCheck, Users } from 'lucide-react'
 import { lazy, useState } from 'react'
 import {
   api,
@@ -153,7 +153,19 @@ export function AdminWorkspace({
   }
   if (view === 'logs') return <AuditLogs />
   if (view === 'agents' && (user.role === 'admin' || user.role === 'super_admin')) {
-    return <AgentManagement currentUser={user} />
+    return (
+      <main className="admin-workspace">
+        <AdminPageHeader
+          icon={Bot}
+          eyebrow="ADMIN · AGENTS"
+          title={t('Agent 管理')}
+          description={t('创建 Agent、管理 API Key 与邮箱授权')}
+        />
+        <div className="admin-detail-grid">
+          <AgentManagement currentUser={user} />
+        </div>
+      </main>
+    )
   }
   if (view === 'mail' && user.role === 'super_admin') return <AdminMailManagement remoteImagesEnabled={config.remoteImagesEnabled} />
   if (view === 'account') {
